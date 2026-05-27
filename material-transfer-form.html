@@ -101,12 +101,6 @@
       background: #f0f7ff;
     }
 
-    .two-column {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -150,6 +144,7 @@
       gap: 10px;
       justify-content: center;
       margin-top: 30px;
+      flex-wrap: wrap;
     }
 
     .btn {
@@ -195,18 +190,6 @@
       background: #c0392b;
     }
 
-    .signature-box {
-      min-height: 80px;
-      border: 1px dashed #ddd;
-      padding: 10px;
-      border-radius: 4px;
-      background: #f9f9f9;
-    }
-
-    .notes-section {
-      margin-top: 20px;
-    }
-
     .status-message {
       padding: 15px;
       border-radius: 4px;
@@ -221,19 +204,15 @@
       display: block;
     }
 
-    .status-message.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-      display: block;
-    }
-
     @media (max-width: 768px) {
       .form-grid {
         grid-template-columns: 1fr;
       }
-      .two-column {
-        grid-template-columns: 1fr;
+      .buttons {
+        flex-direction: column;
+      }
+      .btn {
+        width: 100%;
       }
       table {
         font-size: 12px;
@@ -366,7 +345,7 @@
       <!-- Purpose / Reason Section -->
       <div class="form-section">
         <div class="section-title">PURPOSE / REASON FOR TRANSFER</div>
-        <div class="form-group full">
+        <div class="form-group">
           <label>Reason:</label>
           <textarea id="reason" placeholder="Explain the reason for this material transfer..." required></textarea>
         </div>
@@ -381,12 +360,6 @@
             <input type="text" id="releasedByName" placeholder="Name / Initials" required>
           </div>
           <div class="form-group">
-            <label>Signature:</label>
-            <div class="signature-box"></div>
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
             <label>Date:</label>
             <input type="date" id="releasedByDate" required>
           </div>
@@ -399,12 +372,6 @@
             <label>Received By (To Co.):</label>
             <input type="text" id="receivedByName" placeholder="Name / Initials" required>
           </div>
-          <div class="form-group">
-            <label>Signature:</label>
-            <div class="signature-box"></div>
-          </div>
-        </div>
-        <div class="form-grid">
           <div class="form-group">
             <label>Date:</label>
             <input type="date" id="receivedByDate" required>
@@ -423,13 +390,14 @@
       <!-- Action Buttons -->
       <div class="buttons">
         <button type="button" class="btn btn-secondary" onclick="resetForm()">Clear Form</button>
-        <button type="button" class="btn btn-primary" onclick="exportToExcel()">📊 Export to Excel</button>
-        <button type="button" class="btn btn-primary" onclick="saveLocal()">💾 Save (Local)</button>
+        <button type="button" class="btn btn-primary" onclick="exportToExcel()">📊 Download as Excel</button>
+        <button type="button" class="btn btn-primary" onclick="exportToPDF()">📄 Download as PDF</button>
       </div>
     </form>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <script>
     // Set today's date as default
@@ -437,9 +405,8 @@
     document.getElementById('releasedByDate').valueAsDate = new Date();
     document.getElementById('receivedByDate').valueAsDate = new Date();
 
-    // Load data from local storage on page load
+    // Update totals on page load
     window.addEventListener('load', () => {
-      loadLocal();
       updateTotals();
     });
 
@@ -458,8 +425,6 @@
       `;
       
       tbody.appendChild(row);
-      
-      // Update row numbers
       updateRowNumbers();
       updateTotals();
     }
@@ -503,100 +468,25 @@
       }
     }
 
-    function saveLocal() {
-      const formData = {
-        formNumber: document.getElementById('formNumber').value,
-        formDate: document.getElementById('formDate').value,
-        fromCompany: document.getElementById('fromCompany').value,
-        fromDept: document.getElementById('fromDept').value,
-        fromContact: document.getElementById('fromContact').value,
-        fromLocation: document.getElementById('fromLocation').value,
-        fromEmail: document.getElementById('fromEmail').value,
-        toCompany: document.getElementById('toCompany').value,
-        toDept: document.getElementById('toDept').value,
-        toContact: document.getElementById('toContact').value,
-        toLocation: document.getElementById('toLocation').value,
-        toEmail: document.getElementById('toEmail').value,
-        reason: document.getElementById('reason').value,
-        releasedByName: document.getElementById('releasedByName').value,
-        releasedByDate: document.getElementById('releasedByDate').value,
-        receivedByName: document.getElementById('receivedByName').value,
-        receivedByDate: document.getElementById('receivedByDate').value,
-        notes: document.getElementById('notes').value,
-        materials: []
-      };
-
-      // Collect material rows
-      document.querySelectorAll('#materialRows tr').forEach(row => {
-        const cells = row.querySelectorAll('input');
-        formData.materials.push({
-          partNumber: cells[0].value,
-          description: cells[1].value,
-          uom: cells[2].value,
-          quantity: cells[3].value
-        });
-      });
-
-      localStorage.setItem('mtfForm', JSON.stringify(formData));
-      showMessage('Form saved locally', 'success');
-    }
-
-    function loadLocal() {
-      const saved = localStorage.getItem('mtfForm');
-      if (saved) {
-        const formData = JSON.parse(saved);
-        
-        document.getElementById('formNumber').value = formData.formNumber || '';
-        document.getElementById('formDate').value = formData.formDate || '';
-        document.getElementById('fromCompany').value = formData.fromCompany || '';
-        document.getElementById('fromDept').value = formData.fromDept || '';
-        document.getElementById('fromContact').value = formData.fromContact || '';
-        document.getElementById('fromLocation').value = formData.fromLocation || '';
-        document.getElementById('fromEmail').value = formData.fromEmail || '';
-        document.getElementById('toCompany').value = formData.toCompany || '';
-        document.getElementById('toDept').value = formData.toDept || '';
-        document.getElementById('toContact').value = formData.toContact || '';
-        document.getElementById('toLocation').value = formData.toLocation || '';
-        document.getElementById('toEmail').value = formData.toEmail || '';
-        document.getElementById('reason').value = formData.reason || '';
-        document.getElementById('releasedByName').value = formData.releasedByName || '';
-        document.getElementById('releasedByDate').value = formData.releasedByDate || '';
-        document.getElementById('receivedByName').value = formData.receivedByName || '';
-        document.getElementById('receivedByDate').value = formData.receivedByDate || '';
-        document.getElementById('notes').value = formData.notes || '';
-
-        // Load materials
-        const tbody = document.getElementById('materialRows');
-        tbody.innerHTML = '';
-        if (formData.materials && formData.materials.length > 0) {
-          formData.materials.forEach((material, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${index + 1}</td>
-              <td><input type="text" class="partNumber" value="${material.partNumber}"></td>
-              <td><input type="text" class="description" value="${material.description}"></td>
-              <td><input type="text" class="uom" value="${material.uom}"></td>
-              <td><input type="number" class="quantity" min="0" value="${material.quantity}" step="0.01"></td>
-              <td><button type="button" class="remove-row" onclick="removeRow(this)">Remove</button></td>
-            `;
-            tbody.appendChild(row);
-          });
-        }
-      }
-    }
-
     function exportToExcel() {
       const data = [
         ['MATERIAL TRANSFER FORM'],
         [],
         ['Form #:', document.getElementById('formNumber').value, 'Date:', document.getElementById('formDate').value],
         [],
-        ['FROM (TRANSFERRING COMPANY)', '', '', '', '', 'TO (RECEIVING COMPANY)'],
-        ['Company Name:', document.getElementById('fromCompany').value, '', '', '', 'Company Name:', document.getElementById('toCompany').value],
-        ['Department:', document.getElementById('fromDept').value, '', '', '', 'Department:', document.getElementById('toDept').value],
-        ['Contact Person:', document.getElementById('fromContact').value, '', '', '', 'Contact Person:', document.getElementById('toContact').value],
-        ['Location / Suite:', document.getElementById('fromLocation').value, '', '', '', 'Location / Suite:', document.getElementById('toLocation').value],
-        ['Email:', document.getElementById('fromEmail').value, '', '', '', 'Email:', document.getElementById('toEmail').value],
+        ['FROM (TRANSFERRING COMPANY)'],
+        ['Company Name:', document.getElementById('fromCompany').value],
+        ['Department:', document.getElementById('fromDept').value],
+        ['Contact Person:', document.getElementById('fromContact').value],
+        ['Location / Suite:', document.getElementById('fromLocation').value],
+        ['Email:', document.getElementById('fromEmail').value],
+        [],
+        ['TO (RECEIVING COMPANY)'],
+        ['Company Name:', document.getElementById('toCompany').value],
+        ['Department:', document.getElementById('toDept').value],
+        ['Contact Person:', document.getElementById('toContact').value],
+        ['Location / Suite:', document.getElementById('toLocation').value],
+        ['Email:', document.getElementById('toEmail').value],
         [],
         ['MATERIAL DETAILS'],
         ['#', 'Item / Part Number', 'Description', 'Unit of Measure', 'Qty Transferred'],
@@ -637,7 +527,21 @@
       XLSX.utils.book_append_sheet(wb, ws, 'MTF');
       XLSX.writeFile(wb, `MaterialTransferForm_${new Date().toISOString().split('T')[0]}.xlsx`);
       
-      showMessage('Form exported to Excel', 'success');
+      showMessage('Downloaded as Excel', 'success');
+    }
+
+    function exportToPDF() {
+      const element = document.getElementById('mtfForm');
+      const opt = {
+        margin: 10,
+        filename: `MaterialTransferForm_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+      };
+      
+      html2pdf().set(opt).from(element).save();
+      showMessage('Downloaded as PDF', 'success');
     }
 
     function showMessage(msg, type) {
@@ -647,7 +551,7 @@
       
       setTimeout(() => {
         statusDiv.className = 'status-message';
-      }, 3000);
+      }, 2000);
     }
   </script>
 </body>
